@@ -1,7 +1,50 @@
 let cachedNodes = {};
-const initCachedNodes = getCachedNodes().then(nodes => {
-    cachedNodes = { ...nodes };
-});
+
+window.onload = () => init();
+
+const init = () => {
+    getCachedNodes().then(nodes => { cachedNodes = { ...nodes } });
+    hoverInitialElements();
+    selectorOnchangeListener();
+}
+
+async function getCachedNodes() {
+    return new Promise((resolve, reject) => {
+        chrome.storage.sync.get('cachedNodes', (cacheNodes) => {
+            if (chrome.runtime.lastError) {
+                return reject(chrome.runtime.lastError);
+            }
+            resolve(cacheNodes);
+        });
+    });
+
+}
+
+const hoverInitialElements = () => {
+    chrome.storage.sync.get('selectors', ({ selectors }) => {
+        Object.values(selectors).forEach(selector => {
+            if (selector.checked) hoverElementBy(selector);
+        });
+    });
+}
+
+const hoverElementBy = (selector) => {
+    chrome.runtime.sendMessage({ selector: selector.value, action: action }, function (response) {
+        console.log(response);
+    });
+}
+
+// TODO: check if this functions are necessary
+const onDebuggerEnabled = (debuggerId) => {
+    debuggerEnabled = true
+}
+
+const onAttach = (debuggerId) => {
+    chrome.debugger.sendCommand(
+        debuggerId, "Debugger.enable", {},
+        onDebuggerEnabled.bind(null, debuggerId)
+    );
+}
 
 chrome.storage.onChanged.addListener((changes, area) => {
     console.log(changes, area);
@@ -47,47 +90,10 @@ function replaceNode(selector) {
     parent.appendChild(cachedNodes[selector.id]);
 }
 
-async function getCachedNodes() {
-    return new Promise((resolve, reject) => {
-        chrome.storage.sync.get('cachedNodes', (cacheNodes) => {
-            if (chrome.runtime.lastError) {
-                return reject(chrome.runtime.lastError);
-            }
-            resolve(cacheNodes);
-        });
-    });
-
-}
-
 function added(newKeys, oldKeys) {
     return newKeys.filter(key => !oldKeys.includes(key))[0] ?? null;
 }
 
 function removed(newKeys, oldKeys) {
     return oldKeys.filter(key => !newKeys.includes(key))[0] ?? null;
-}
-
-
-chrome.storage.sync.get('selectors', ({ selectors }) => {
-    if (!selectors) {
-        return;
-    }
-
-    Object.entries(selectors).forEach(([key, selector]) => {
-        const action = selector.checked ? 'enable' : 'disable';
-        chrome.runtime.sendMessage({ selector: selector.value, action: action }, function (response) {
-            console.log(response);
-        });
-    });
-});
-
-const onDebuggerEnabled = (debuggerId) => {
-    debuggerEnabled = true
-}
-
-const onAttach = (debuggerId) => {
-    chrome.debugger.sendCommand(
-        debuggerId, "Debugger.enable", {},
-        onDebuggerEnabled.bind(null, debuggerId)
-    );
 }

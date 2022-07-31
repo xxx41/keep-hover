@@ -33,23 +33,23 @@ function onAttach(debuggerId) {
 }
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-    if (!request.selector) {
+    if (!request.selectors) {
         return true;
     }
 
     const tabId = request.tab ? request.tab.id : sender.tab.id;
     let debuggerId = { tabId };
     chrome.debugger.attach(debuggerId, "1.1", onAttach.bind(null, debuggerId));
-    const pseudoClass = getPseudoClassBy(request.action);
-    toggleHoverOnElement(request, tabId, pseudoClass).then(sendResponse({status: 'ok'}));
-    return true;
+
+    Object.values(request.selectors).forEach(selector => {
+        toggleHoverOnElement(selector, tabId, selector.checked).then(sendResponse({status: 'ok'}));
+        return true;
+    });
 });
 
-async function toggleHoverOnElement(request, tabId, pseudoClass) {
+async function toggleHoverOnElement(selector, tabId, forceHover) {
 
-    if (pseudoClass === '') {
-        // chrome.debugger.sendCommand({ tabId: tabId }, 'CSS.disable');
-        removeHover(request.selector);
+    if (!forceHover) {
         return;
     }
 
@@ -64,16 +64,16 @@ async function toggleHoverOnElement(request, tabId, pseudoClass) {
     const querySelectorResult = await chrome.debugger.sendCommand(
         { tabId: tabId },
         "DOM.querySelector",
-        { nodeId: getDocumentResult.root.nodeId, selector: `${request.selector}` }
+        { nodeId: getDocumentResult.root.nodeId, selector: `${selector.value}` }
     );
 
     const forcePseudoStateResult = await chrome.debugger.sendCommand(
         { tabId: tabId },
         "CSS.forcePseudoState",
-        { nodeId: querySelectorResult.nodeId, forcedPseudoClasses: [pseudoClass] }
+        { nodeId: querySelectorResult.nodeId, forcedPseudoClasses: ['hover'] }
     );
 }
 
-function getPseudoClassBy(action) {
-    return action == 'enable' ? 'hover' : '';
+function getForceHover(action) {
+    return action == 'enable';
 }
