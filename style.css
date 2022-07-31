@@ -1,0 +1,69 @@
+.popup {
+    background-color: #292929;
+    color: #f3f3f3;
+    padding: 5px 10px;
+}
+
+.popup__debug-mode {
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+}
+
+.popup__section {
+    margin: 0 0 10px;
+}
+
+.popup__section-title {
+    border-bottom: solid 1px #7f7f7f;
+    color: #7f7f7f;
+    display: inline-block;
+    font-size: 10px;
+    font-style: italic;
+    margin: 0 0 8px;
+    padding: 0 0 3px;
+    width: 100%;
+}
+
+.popup__selector {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0 5px;
+    margin: 0 0 8px 0;
+}
+
+.popup__selector label {
+    margin: 0 auto 0 0;
+}
+
+.popup__selector-adder {
+    align-items: center;
+    display: flex;
+    flex-flow: row nowrap;
+    gap: 0 5px;
+    justify-content: flex-start;
+    margin: 8px 0 0;
+}
+
+.popup__selector-delete {
+    background-color: transparent;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: contain;
+    border: none;
+    height: 14px;
+    position: relative;
+    width: 14px;
+}
+
+.popup__selector-delete::before {
+    content: 'X';
+    color: #f3f3f3;
+    font-size: 11px;
+}
+
+input[type="checkbox" i] {
+    accent-color: #78B9E1;
+    margin: 0 10px 0 0;
+}
