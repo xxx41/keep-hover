@@ -33,7 +33,7 @@ function onAttach(debuggerId) {
 }
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-    if (!request.selectors) {
+    if (!request.selector) {
         return true;
     }
 
@@ -41,15 +41,14 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     let debuggerId = { tabId };
     chrome.debugger.attach(debuggerId, "1.1", onAttach.bind(null, debuggerId));
 
-    Object.values(request.selectors).forEach(selector => {
-        toggleHoverOnElement(selector, tabId, selector.checked).then(sendResponse({status: 'ok'}));
-        return true;
-    });
+    toggleHoverOnElement(request.selector, tabId, request.selector.checked).then(sendResponse({status: 'ok'}));
+    return true;
 });
 
 async function toggleHoverOnElement(selector, tabId, forceHover) {
 
     if (!forceHover) {
+        chrome.debugger.sendCommand({ tabId: tabId }, 'CSS.disable')
         return;
     }
 

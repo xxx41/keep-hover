@@ -31,23 +31,24 @@ function adderClickListener(selectors) {
     button.onclick = () => {
         if (!adder.value) return;
 
-        createSelector(adder.value);
-        hoverElementBy(selectors[addedId]);
+        const selector = createSelector(adder.value, selectors);
+        hoverElementBy(selector);
     }
 }
 
-function createSelector(selectorText) {
+function createSelector(selectorText, selectors) {
     const id = appendSelector(selectorText);
-    selectors[addedId] = { id: id, value: selectorText, checked: true };
+    const selector = { id: id, value: selectorText, checked: true };
+    selectors[id] = selector;
     global.selectors = selectors;
     chrome.storage.sync.set({ selectors });
 
-    return id;
+    return selector;
 }
 
 function hoverElementBy(selector) {
     chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
-        chrome.runtime.sendMessage({ selector: selector, tab: tab }, (response) => {
+        chrome.runtime.sendMessage({ selector: selector, tab: tabs[0] }, (response) => {
             console.log(response)
         });
     });
@@ -65,7 +66,7 @@ function appendSelector(selectorText, selectorId = null, checked = true) {
     const adder = document.querySelector(ADDER_SELECTOR);
     const id = selectorId ?? generateId();
 
-    selectors.insertBefore(createSelectorNode(id, selectorText, checked), adder);
+    selectors.insertBefore(createSelectorNode(selectorText, id, checked), adder);
 
     return id;
 }
@@ -91,7 +92,9 @@ function createSelectorNode(selectorText, selectorId, checked) {
 function createElement(tag, attributes = []) {
     const element = document.createElement(tag);
     attributes.forEach(attribute => {
-        element[attribute.attr] = attribute.value;
+        (attribute.attr === 'class')
+            ? element.classList.add(attribute.value)
+            : element[attribute.attr] = attribute.value;
     });
 
     return element;
