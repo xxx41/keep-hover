@@ -32,6 +32,7 @@ function adderClickListener(selectors) {
         if (!adder.value) return;
 
         const selector = createSelector(adder.value, selectors);
+        disableOtherCheckboxes(selector);
         hoverElementBy(selector);
     }
 }
@@ -49,6 +50,14 @@ function createSelector(selectorText, selectors) {
 function hoverElementBy(selector) {
     chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
         chrome.runtime.sendMessage({ selector: selector, tab: tabs[0] }, (response) => {
+            console.log(response)
+        });
+    });
+}
+
+function removeHover() {
+    chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+        chrome.runtime.sendMessage({ action: 'remove', tab: tabs[0] }, (response) => {
             console.log(response)
         });
     });
@@ -130,14 +139,16 @@ function getSelectorDeleteAttributes() {
 
 function checkboxOnchangeListener(checkbox) {
     checkbox.onchange = (event) => {
-        // TODO: refactor
-        const selector = global.selectors[event.target.parentNode.id].value;
-        const action = event.target.checked ? 'enable' : 'disable';
-        global.selectors[event.target.parentNode.id].checked = event.target.checked;
-
-        const selectors = global.selectors;
-        chrome.storage.sync.set({ selectors });
-        hoverElementBy(selector);
+        if (event.target.checked) {
+            const selector = global.selectors[event.target.parentNode.id];
+            global.selectors[event.target.parentNode.id].checked = event.target.checked;
+            const selectors = global.selectors;
+            chrome.storage.sync.set({ selectors });
+            disableOtherCheckboxes(selector);
+            hoverElementBy(selector);
+        } else {
+            removeHover();
+        }
     }
 }
 
@@ -146,12 +157,21 @@ function deleteOnclickListener(deleteElement) {
         const id = parent.id;
         delete global.selectors[id];
         parent.remove();
-
         let selectors = global.selectors;
         chrome.storage.sync.set({ selectors });
+        removeHover();
     }
 }
 
 function generateId() {
     return 'sel' + global.selectorId++;
+}
+
+function disableOtherCheckboxes(activeSelector) {
+    Object.values(global.selectors).forEach(selector => {
+        if (selector.id !== activeSelector.id) {
+            let checkbox = document.querySelector(`#${selector.id} > input[type=checkbox]`);
+            checkbox['checked'] = false;
+        }
+    });
 }

@@ -33,24 +33,25 @@ function onAttach(debuggerId) {
 }
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-    if (!request.selector) {
+    const tabId = request.tab ? request.tab.id : sender.tab.id;
+
+    if (request.action === 'remove') {
+        disableCss(tabId).then(sendResponse({status: 'ok'}));;
         return true;
     }
 
-    const tabId = request.tab ? request.tab.id : sender.tab.id;
     let debuggerId = { tabId };
     chrome.debugger.attach(debuggerId, "1.1", onAttach.bind(null, debuggerId));
 
-    toggleHoverOnElement(request.selector, tabId, request.selector.checked).then(sendResponse({status: 'ok'}));
+    hoverOnElement(request.selector, tabId).then(sendResponse({status: 'ok'}));
     return true;
 });
 
-async function toggleHoverOnElement(selector, tabId, forceHover) {
+async function disableCss(tabId) {
+    chrome.debugger.sendCommand({ tabId: tabId }, 'CSS.disable')
+}
 
-    if (!forceHover) {
-        chrome.debugger.sendCommand({ tabId: tabId }, 'CSS.disable')
-        return;
-    }
+async function hoverOnElement(selector, tabId) {
 
     chrome.debugger.sendCommand({ tabId: tabId }, 'DOM.enable')
     chrome.debugger.sendCommand({ tabId: tabId }, 'CSS.enable')
@@ -71,8 +72,4 @@ async function toggleHoverOnElement(selector, tabId, forceHover) {
         "CSS.forcePseudoState",
         { nodeId: querySelectorResult.nodeId, forcedPseudoClasses: ['hover'] }
     );
-}
-
-function getForceHover(action) {
-    return action == 'enable';
 }
