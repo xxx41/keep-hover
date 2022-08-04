@@ -1,5 +1,5 @@
 let selectors = {};
-let isDebugMode = false;
+let isVerboseMode = false;
 let isDebuggerAttached = false;
 
 init();
@@ -7,7 +7,7 @@ init();
 function init() {
     getAllStorageSyncData().then(items => {
         selectors = items.selectors ?? {};
-        isDebugMode = items.isDebugMode ?? false;
+        isVerboseMode = items.isVerboseMode ?? false;
     });
     addOnInstalledListener();
     addOnMessageListener();
@@ -15,7 +15,7 @@ function init() {
 
 function addOnInstalledListener() {
     chrome.runtime.onInstalled.addListener(() => {
-        chrome.storage.sync.set({ selectors, isDebugMode });
+        chrome.storage.sync.set({ selectors, isVerboseMode });
     });
 }
 
@@ -35,7 +35,7 @@ function addOnMessageListener() {
         const tabId = request.tab ? request.tab.id : sender.tab.id;
 
         if (request.action === 'remove') {
-            disableCss(tabId).then(sendResponse({status: 'ok'}));;
+            disableCss(tabId).then(sendResponse({success: true}));
             return true;
         }
 
@@ -45,10 +45,13 @@ function addOnMessageListener() {
             isDebuggerAttached = true;
         }
 
-        hoverOnElement(request.selector, tabId).then(sendResponse({status: 'ok'}));
+        hoverOnElement(request.selector, tabId)
+            .then(response => sendResponse(response));
+
         return true;
     });
 }
+
 
 async function disableCss(tabId) {
     chrome.debugger.sendCommand({ tabId: tabId }, 'CSS.disable')
@@ -70,9 +73,31 @@ async function hoverOnElement(selector, tabId) {
         { nodeId: getDocumentResult.root.nodeId, selector: `${selector.value}` }
     );
 
-    const forcePseudoStateResult = await chrome.debugger.sendCommand(
+    if (querySelectorResult.nodeId === 0) {
+        return { success: false, message: `Node not found for selector: ${selector.value}` };
+    }
+
+    await chrome.debugger.sendCommand(
         { tabId: tabId },
         "CSS.forcePseudoState",
         { nodeId: querySelectorResult.nodeId, forcedPseudoClasses: ['hover'] }
     );
+
+    return { success: true }
+}
+
+function log(level, message) {
+    if (!global.isVerboseMode) return;
+
+    chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+        chrome.scripting.executeScript({
+            target: { tabId: tabs[0].id },
+            func: consoleLog,
+            args: [message, level]
+        });
+    });
+}
+
+function consoleLog(message, level) {
+    console.log({ level: level, message: message });
 }

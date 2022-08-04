@@ -3,32 +3,31 @@ const ADDER_BUTTON_SELECTOR = '.popup__selector-adder > input[type=button]'
 const SELECTORS_SELECTOR = '.popup__selectors';
 const ADDER_SELECTOR = '.popup__selector-adder';
 
-const debugMode = document.querySelector('#debugMode');
-const global = { selectorId: 0, selectors: {}, isDebugMode: false };
+const verboseMode = document.querySelector('#verboseMode');
+const global = { selectorId: 0, selectors: {}, isVerboseMode: false };
 
 window.onload = () => init();
 
 function init() {
-    chrome.storage.sync.get('isDebugMode', ({ isDebugMode }) => {
-        debugMode.checked = isDebugMode;
-        global.isDebugMode = isDebugMode;
+    chrome.storage.sync.get('isVerboseMode', ({ isVerboseMode }) => {
+        verboseMode.checked = isVerboseMode;
+        global.isVerboseMode = isVerboseMode;
     });
 
     chrome.storage.sync.get('selectors', ({ selectors }) => {
         global.selectors = selectors;
 
-        debugger
         buildInitialSelectors(selectors);
         adderClickListener(selectors);
-        debugModeListener();
+        verboseModeListener();
     });
 }
 
-function debugModeListener() {
-    debugMode.onchange = (event) => {
-        let isDebugMode = event.target.checked
-        global.isDebugMode = isDebugMode;
-        chrome.storage.sync.set({ isDebugMode });
+function verboseModeListener() {
+    verboseMode.onchange = (event) => {
+        let isVerboseMode = event.target.checked
+        global.isVerboseMode = isVerboseMode;
+        chrome.storage.sync.set({ isVerboseMode });
     }
 }
 
@@ -66,7 +65,9 @@ function createSelector(selectorText, selectors = {}) {
 function hoverElementBy(selector) {
     chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
         chrome.runtime.sendMessage({ selector: selector, tab: tabs[0] }, (response) => {
-            console.log(response)
+            if (!response.success) {
+                log('error', `Node not found for selector: ${selector.value}`);
+            }
         });
     });
 }
@@ -207,7 +208,7 @@ function disableOtherCheckboxes(activeSelector) {
 }
 
 function log(level, message) {
-    if (!global.isDebugMode) return;
+    if (!global.isVerboseMode) return;
 
     chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
         chrome.scripting.executeScript({
