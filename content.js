@@ -2,12 +2,12 @@ let cachedNodes = {};
 
 window.onload = () => init();
 
-const init = () => {
+function init() {
     getCachedNodes().then(nodes => { cachedNodes = { ...nodes } });
     hoverInitialIfNecessary();
 }
 
-const getCachedNodes = async() => {
+async function getCachedNodes() {
     return new Promise((resolve, reject) => {
         chrome.storage.sync.get('cachedNodes', (cachedNodes) => {
             if (chrome.runtime.lastError) {
@@ -18,28 +18,16 @@ const getCachedNodes = async() => {
     });
 }
 
-const hoverInitialIfNecessary = () => {
+function hoverInitialIfNecessary() {
     chrome.storage.sync.get('selectors', ({ selectors }) => {
-        Object.values(selectors).forEach(selector => {
+        Object.values(selectors ?? []).forEach(selector => {
             if (selector.checked) hoverElementBy(selector);
         });
     });
 }
 
-const hoverElementBy = (selector) => {
-    chrome.runtime.sendMessage({ selector: selector.value, action: action }, function (response) {
+function hoverElementBy(selector) {
+    chrome.runtime.sendMessage({ selector: selector }, function (response) {
         console.log(response);
     });
-}
-
-// TODO: check if this functions are necessary
-const onDebuggerEnabled = (debuggerId) => {
-    debuggerEnabled = true
-}
-
-const onAttach = (debuggerId) => {
-    chrome.debugger.sendCommand(
-        debuggerId, "Debugger.enable", {},
-        onDebuggerEnabled.bind(null, debuggerId)
-    );
 }

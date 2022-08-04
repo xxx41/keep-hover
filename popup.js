@@ -4,24 +4,32 @@ const SELECTORS_SELECTOR = '.popup__selectors';
 const ADDER_SELECTOR = '.popup__selector-adder';
 
 const debugMode = document.querySelector('#debugMode');
-const global = {
-    selectorId: 0,
-    selectors: {}
-}
+const global = { selectorId: 0, selectors: {}, isDebugMode: false };
 
 window.onload = () => init();
 
 function init() {
     chrome.storage.sync.get('isDebugMode', ({ isDebugMode }) => {
         debugMode.checked = isDebugMode;
+        global.isDebugMode = isDebugMode;
     });
 
     chrome.storage.sync.get('selectors', ({ selectors }) => {
         global.selectors = selectors;
 
+        debugger
         buildInitialSelectors(selectors);
         adderClickListener(selectors);
+        debugModeListener();
     });
+}
+
+function debugModeListener() {
+    debugMode.onchange = (event) => {
+        let isDebugMode = event.target.checked
+        global.isDebugMode = isDebugMode;
+        chrome.storage.sync.set({ isDebugMode });
+    }
 }
 
 function adderClickListener(selectors) {
@@ -31,13 +39,21 @@ function adderClickListener(selectors) {
     button.onclick = () => {
         if (!adder.value) return;
 
-        const selector = createSelector(adder.value, selectors);
-        disableOtherCheckboxes(selector);
-        hoverElementBy(selector);
+        if (selectorHasAlreadyBeenAdded(selectors)) {
+            log('warning', 'Selector has already been added');
+        } else {
+            const selector = createSelector(adder.value, selectors);
+            disableOtherCheckboxes(selector);
+            hoverElementBy(selector);
+        }
     }
 }
 
-function createSelector(selectorText, selectors) {
+function selectorHasAlreadyBeenAdded(selectors) {
+    return Object.values(selectors).filter(element => element.value === adder.value).length > 0;
+}
+
+function createSelector(selectorText, selectors = {}) {
     const id = appendSelector(selectorText);
     const selector = { id: id, value: selectorText, checked: true };
     selectors[id] = selector;
@@ -64,8 +80,8 @@ function removeHover() {
 }
 
 function buildInitialSelectors(selectors) {
-    global.selectorId = Object.values(selectors).length;
-    Object.entries(selectors).forEach(([key, selector]) => {
+    global.selectorId = Object.values(selectors ?? []).length;
+    Object.entries(selectors ?? []).forEach(([key, selector]) => {
         appendSelector(selector.value, key, selector.checked);
     });
 }
@@ -101,9 +117,17 @@ function createSelectorNode(selectorText, selectorId, checked) {
 function createElement(tag, attributes = []) {
     const element = document.createElement(tag);
     attributes.forEach(attribute => {
-        (attribute.attr === 'class')
-            ? element.classList.add(attribute.value)
-            : element[attribute.attr] = attribute.value;
+        switch (attribute.attr) {
+            case 'class':
+                element.classList.add(attribute.value)
+                break;
+            case 'for':
+                element.setAttribute('for', attribute.value);
+                break;
+            default:
+                element[attribute.attr] = attribute.value;
+                break;
+        }
     });
 
     return element;
@@ -119,7 +143,7 @@ function getSelectorNodeAttributes(id) {
 function getSelectorCheckboxAttributes(name, checked = true) {
     return [
         { attr: 'type', value: 'checkbox' },
-        { attr: 'name', value: name },
+        { attr: 'id', value: name },
         { attr: 'checked', value: checked }
     ];
 }
@@ -128,7 +152,7 @@ function getSelectorLabelAttributes(checkboxName, labelText) {
     return [
         { attr: 'innerText', value: labelText },
         { attr: 'for', value: checkboxName }
-    ]
+    ];
 }
 
 function getSelectorDeleteAttributes() {
@@ -141,12 +165,15 @@ function checkboxOnchangeListener(checkbox) {
     checkbox.onchange = (event) => {
         if (event.target.checked) {
             const selector = global.selectors[event.target.parentNode.id];
-            global.selectors[event.target.parentNode.id].checked = event.target.checked;
+            global.selectors[event.target.parentNode.id].checked = true;
             const selectors = global.selectors;
             chrome.storage.sync.set({ selectors });
             disableOtherCheckboxes(selector);
             hoverElementBy(selector);
         } else {
+            global.selectors[event.target.parentNode.id].checked = false;
+            const selectors = global.selectors;
+            chrome.storage.sync.set({ selectors });
             removeHover();
         }
     }
@@ -154,12 +181,12 @@ function checkboxOnchangeListener(checkbox) {
 
 function deleteOnclickListener(deleteElement) {
     deleteElement.onclick = (event) => {
-        const id = parent.id;
+        const id = event.target.parentNode.id;
+        if (global.selectors[id].checked) removeHover();
         delete global.selectors[id];
-        parent.remove();
+        event.target.parentNode.remove();
         let selectors = global.selectors;
         chrome.storage.sync.set({ selectors });
-        removeHover();
     }
 }
 
@@ -172,6 +199,25 @@ function disableOtherCheckboxes(activeSelector) {
         if (selector.id !== activeSelector.id) {
             let checkbox = document.querySelector(`#${selector.id} > input[type=checkbox]`);
             checkbox['checked'] = false;
+            global.selectors[selector.id].checked = false;
+            const selectors = global.selectors;
+            chrome.storage.sync.set({ selectors });
         }
     });
+}
+
+function log(level, message) {
+    if (!global.isDebugMode) return;
+
+    chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+        chrome.scripting.executeScript({
+            target: { tabId: tabs[0].id },
+            func: consoleLog,
+            args: [message, level]
+        });
+    });
+}
+
+function consoleLog(message, level) {
+    console.log({ level: level, message: message });
 }

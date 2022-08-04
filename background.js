@@ -1,21 +1,23 @@
-const options = {
-    selectors: {},
-    isDebugMode: false,
-    action: {},
-    cacheNodes: {}
+let selectors = {};
+let isDebugMode = false;
+let isDebuggerAttached = false;
+
+init();
+
+function init() {
+    getAllStorageSyncData().then(items => {
+        selectors = items.selectors ?? {};
+        isDebugMode = items.isDebugMode ?? false;
+    });
+    addOnInstalledListener();
+    addOnMessageListener();
 }
-const initOptions = getAllStorageSyncData().then(items => {
-    options.selectors = items.selectors ?? {};
-    options.isDebugMode = items.isDebugMode ?? false;
-})
 
-chrome.runtime.onInstalled.addListener(() => {
-    const selectors = options.selectors;
-    const isDebugMode = options.isDebugMode;
-
-    console.log(options);
-    chrome.storage.sync.set({ selectors, isDebugMode });
-});
+function addOnInstalledListener() {
+    chrome.runtime.onInstalled.addListener(() => {
+        chrome.storage.sync.set({ selectors, isDebugMode });
+    });
+}
 
 function getAllStorageSyncData() {
     return new Promise((resolve, reject) => {
@@ -28,24 +30,25 @@ function getAllStorageSyncData() {
     });
 }
 
-function onAttach(debuggerId) {
-    console.log(debuggerId)
-}
+function addOnMessageListener() {
+    chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+        const tabId = request.tab ? request.tab.id : sender.tab.id;
 
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-    const tabId = request.tab ? request.tab.id : sender.tab.id;
+        if (request.action === 'remove') {
+            disableCss(tabId).then(sendResponse({status: 'ok'}));;
+            return true;
+        }
 
-    if (request.action === 'remove') {
-        disableCss(tabId).then(sendResponse({status: 'ok'}));;
+        if (!isDebuggerAttached) {
+            let debuggerId = { tabId };
+            chrome.debugger.attach(debuggerId, "1.1");
+            isDebuggerAttached = true;
+        }
+
+        hoverOnElement(request.selector, tabId).then(sendResponse({status: 'ok'}));
         return true;
-    }
-
-    let debuggerId = { tabId };
-    chrome.debugger.attach(debuggerId, "1.1", onAttach.bind(null, debuggerId));
-
-    hoverOnElement(request.selector, tabId).then(sendResponse({status: 'ok'}));
-    return true;
-});
+    });
+}
 
 async function disableCss(tabId) {
     chrome.debugger.sendCommand({ tabId: tabId }, 'CSS.disable')
