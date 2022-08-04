@@ -6,7 +6,12 @@
     "background": {
       "service_worker": "background.js"
     },
-    "permissions": ["storage", "activeTab", "debugger"],
+    "permissions": [
+      "storage",
+      "activeTab",
+      "debugger",
+      "scripting"
+    ],
     "action": {
       "default_popup": "popup.html"
     },
@@ -16,5 +21,8 @@
             "matches": ["<all_urls>"],
             "run_at": "document_end"
         }
+    ],
+    "host_permissions": [
+      "<all_urls>"
     ]
   }
