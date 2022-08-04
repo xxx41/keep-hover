@@ -85,19 +85,3 @@ async function hoverOnElement(selector, tabId) {
 
     return { success: true }
 }
-
-function log(level, message) {
-    if (!global.isVerboseMode) return;
-
-    chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
-        chrome.scripting.executeScript({
-            target: { tabId: tabs[0].id },
-            func: consoleLog,
-            args: [message, level]
-        });
-    });
-}
-
-function consoleLog(message, level) {
-    console.log({ level: level, message: message });
-}
