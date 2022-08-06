@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "target": "ES5",
+    "module": "ES2015",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "rootDir": "./src",
+    "outDir": "./extension",
+    "types": ["chrome"],
+    "lib": ["ES2017", "DOM"]
+  },
+  "$schema": "https://json.schemastore.org/tsconfig"
+}

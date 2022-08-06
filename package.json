@@ -1,0 +1,14 @@
+{
+  "dependencies": {
+    "@types/chrome": "^0.0.193",
+    "typecript": "^0.0.1-security"
+  },
+  "scripts": {
+    "compile": "tsc"
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^5.32.0",
+    "@typescript-eslint/parser": "^5.32.0",
+    "eslint": "^8.21.0"
+  }
+}
