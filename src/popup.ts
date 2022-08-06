@@ -72,7 +72,7 @@ class Popup {
     ): Selector {
         const id = this.appendSelector(selectorText);
         const selector: Selector = {
-            id: parseInt(id),
+            id: id,
             value: selectorText,
             checked: true
         };
@@ -244,7 +244,9 @@ class Popup {
     }
 
     generateId(): string {
-        return 'sel' + global.selectorId++;
+        const currentId = global.selectorId;
+        global.selectorId++
+        return 'sel' + currentId;
     }
 
     disableOtherCheckboxes(activeSelector: Selector): void {

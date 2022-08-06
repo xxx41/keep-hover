@@ -1,5 +1,5 @@
 interface Selector {
-    id: number,
+    id: string,
     value: string,
     checked: boolean
 }

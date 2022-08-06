@@ -60,7 +60,7 @@ var Popup = /** @class */ (function () {
         if (selectors === void 0) { selectors = {}; }
         var id = this.appendSelector(selectorText);
         var selector = {
-            id: parseInt(id),
+            id: id,
             value: selectorText,
             checked: true
         };
@@ -199,7 +199,9 @@ var Popup = /** @class */ (function () {
         };
     };
     Popup.prototype.generateId = function () {
-        return 'sel' + global.selectorId++;
+        var currentId = global.selectorId;
+        global.selectorId++;
+        return 'sel' + currentId;
     };
     Popup.prototype.disableOtherCheckboxes = function (activeSelector) {
         Object.values(global.selectors).forEach(function (selector) {
